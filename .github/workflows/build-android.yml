@@ -1,4 +1,8 @@
-name: Auto Fix Code Formatting & Linting
+name: Auto Fix Code
+
+permissions:
+  contents: write
+  pull-requests: write
 
 on:
   push:
@@ -11,13 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      # Setup berbagai bahasa pemrograman
-      - name: Setup Node.js (JavaScript/TypeScript)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -27,65 +30,24 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Install semua formatter & linter tools
-      - name: Install formatters and linters
+      - name: Install tools
         run: |
-          # Node.js tools
           npm install --global prettier eslint
+          pip install black isort autopep8 -q
+
+      - name: Fix code
+        run: |
+          # JavaScript
+          npx prettier --write . --ignore-unknown 2>/dev/null || true
+          npx eslint . --fix 2>/dev/null || true
           
-          # Python tools
-          pip install black isort autopep8 flake8
-          
-          # Go (optional)
-          go install golang.org/x/tools/cmd/goimports@latest
-          
-          # PHP (optional)
-          # composer global require squizlabs/php_codesniffer
+          # Python
+          black . -q 2>/dev/null || true
+          isort . -q 2>/dev/null || true
+          autopep8 --in-place --recursive . 2>/dev/null || true
 
-      # JavaScript/TypeScript formatting
-      - name: Fix JavaScript/TypeScript
-        run: |
-          npx prettier --write "**/*.{js,jsx,ts,tsx,json,md,yaml,yml}" --ignore-path .gitignore || true
-          npx eslint . --fix --ignore-path .gitignore || true
-
-      # Python formatting
-      - name: Fix Python code
-        run: |
-          black . --quiet || true
-          isort . --quiet || true
-          autopep8 --in-place --recursive . || true
-
-      # Go formatting (jika ada file .go)
-      - name: Fix Go code
-        run: |
-          if find . -name "*.go" -type f | grep -q .; then
-            go fmt ./...
-            goimports -w . || true
-          fi
-
-      # PHP formatting (opsional)
-      # - name: Fix PHP code
-      #   run: |
-      #     if command -v phpcbf &> /dev/null; then
-      #       phpcbf . || true
-      #     fi
-
-      # Check apakah ada perubahan
-      - name: Check if there are changes
-        id: verify-changed-files
-        run: |
-          if git diff --quiet; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
-
-      # Auto-commit & push jika ada perubahan
-      - name: Commit changes
-        if: steps.verify-changed-files.outputs.changed == 'true'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add -A
-          git commit -m "🤖 chore: auto-fix code formatting & linting" || true
-          git push
+      - name: Auto-commit
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "🤖 chore: auto-fix formatting & linting"
+          file_pattern: "."
