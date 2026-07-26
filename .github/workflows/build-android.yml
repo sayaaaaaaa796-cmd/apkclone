@@ -1,56 +1,73 @@
-name: Auto Fix Code
-
-permissions:
-  contents: write
-  pull-requests: write
-
+name: Build Android APK
 on:
   push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  fix-code:
+  build:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout
+      - name: Ambil Kode
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.WORKFLOW_TOKEN }}  # Gunakan PAT
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-        env:
-          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          node-version: 20
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install tools
+      - name: Setup Bun pake npm
         run: |
-          npm install --global prettier eslint
-          pip install black isort autopep8 -q
+          npm install -g bun
+          bun --version
 
-      - name: Fix code
-        run: |
-          npx prettier --write . --ignore-unknown 2>/dev/null || true
-          npx eslint src/ --fix 2>/dev/null || true
-          black . -q 2>/dev/null || true
-          isort . -q 2>/dev/null || true
-          autopep8 --in-place --recursive . 2>/dev/null || true
+      - name: Install Dependencies
+        run: bun install
 
-      - name: Auto-commit
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - name: Build Web
+        run: bun run build
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
         with:
-          repository: .
-          commit_message: "🤖 chore: auto-fix formatting & linting"
-          file_pattern: "."
-          commit_user_name: github-actions[bot]
-          commit_user_email: github-actions[bot]@users.noreply.github.com
+          java-version: 21
+          distribution: temurin
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Capacitor
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: Buat Project Capacitor
+        run: |
+          npx cap init MyApp com.example.myapp --web-dir=dist
+          npx cap add android
+          npx cap sync android
+
+      - name: Fix Duplicate Class Error
+        run: |
+          cd android
+          echo "" >> app/build.gradle
+          echo "configurations.all {" >> app/build.gradle
+          echo "    resolutionStrategy {" >> app/build.gradle
+          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'" >> app/build.gradle
+          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'" >> app/build.gradle
+          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'" >> app/build.gradle
+          echo "    }" >> app/build.gradle
+          echo "}" >> app/build.gradle
+          echo "=== isi build.gradle ==="
+          cat app/build.gradle
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: File-APK
+          path: android/app/build/outputs/apk/debug/*.apk
