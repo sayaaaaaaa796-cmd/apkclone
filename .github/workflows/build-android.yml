@@ -36,27 +36,19 @@ jobs:
 
       - name: Install Capacitor
         run: |
-          npm install -g @capacitor/cli @capacitor/android
+          npm install @capacitor/core @capacitor/cli @capacitor/android
 
       - name: Buat Project Capacitor
         run: |
-          # Init Capacitor
           npx cap init MyApp com.example.myapp --web-dir=dist
-          
-          # Add Android platform
           npx cap add android
-          
-          # Sync project
           npx cap sync android
-
-      - name: Copy Web ke Android
-        run: npx cap copy android
 
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
