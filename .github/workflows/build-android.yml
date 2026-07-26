@@ -40,8 +40,14 @@ jobs:
 
       - name: Buat Project Capacitor
         run: |
+          # Init Capacitor
           npx cap init MyApp com.example.myapp --web-dir=dist
+          
+          # Add Android platform
           npx cap add android
+          
+          # Sync project
+          npx cap sync android
 
       - name: Copy Web ke Android
         run: npx cap copy android
@@ -50,7 +56,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
