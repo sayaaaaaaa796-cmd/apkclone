@@ -17,8 +17,8 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Beri Izin Gradle
-        run: chmod +x gradlew
+    #  - name: Beri Izin Gradle
+      #  run: chmod +x gradlew
 
       - name: Bangun APK
         run: ./gradlew assembleDebug # Ganti jadi assembleRelease kalau mau versi rilis
