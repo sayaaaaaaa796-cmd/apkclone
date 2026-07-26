@@ -1,71 +1,91 @@
-name: Build Android APK
+name: Auto Fix Code Formatting & Linting
+
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
 
 jobs:
-  build:
+  fix-code:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Ambil Kode
+      - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
+      # Setup berbagai bahasa pemrograman
+      - name: Setup Node.js (JavaScript/TypeScript)
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '18'
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-
-      - name: Install Dependencies
-        run: bun install
-
-      - name: Build Web
-        run: bun run build
-
-      - name: Setup Java 21
-        uses: actions/setup-java@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          java-version: 21
-          distribution: temurin
+          python-version: '3.11'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Capacitor
+      # Install semua formatter & linter tools
+      - name: Install formatters and linters
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          # Node.js tools
+          npm install --global prettier eslint
+          
+          # Python tools
+          pip install black isort autopep8 flake8
+          
+          # Go (optional)
+          go install golang.org/x/tools/cmd/goimports@latest
+          
+          # PHP (optional)
+          # composer global require squizlabs/php_codesniffer
 
-      - name: Buat Project Capacitor
+      # JavaScript/TypeScript formatting
+      - name: Fix JavaScript/TypeScript
         run: |
-          npx cap init MyApp com.example.myapp --web-dir=dist
-          npx cap add android
-          npx cap sync android
+          npx prettier --write "**/*.{js,jsx,ts,tsx,json,md,yaml,yml}" --ignore-path .gitignore || true
+          npx eslint . --fix --ignore-path .gitignore || true
 
-      - name: Fix Duplicate Class Error
+      # Python formatting
+      - name: Fix Python code
         run: |
-          cd android
-          echo "" >> app/build.gradle
-          echo "configurations.all {" >> app/build.gradle
-          echo "    resolutionStrategy {" >> app/build.gradle
-          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'" >> app/build.gradle
-          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'" >> app/build.gradle
-          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'" >> app/build.gradle
-          echo "    }" >> app/build.gradle
-          echo "}" >> app/build.gradle
-          echo "=== isi build.gradle ==="
-          cat app/build.gradle
+          black . --quiet || true
+          isort . --quiet || true
+          autopep8 --in-place --recursive . || true
 
-      - name: Build APK
+      # Go formatting (jika ada file .go)
+      - name: Fix Go code
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          if find . -name "*.go" -type f | grep -q .; then
+            go fmt ./...
+            goimports -w . || true
+          fi
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: File-APK
-          path: android/app/build/outputs/apk/debug/*.apk
+      # PHP formatting (opsional)
+      # - name: Fix PHP code
+      #   run: |
+      #     if command -v phpcbf &> /dev/null; then
+      #       phpcbf . || true
+      #     fi
+
+      # Check apakah ada perubahan
+      - name: Check if there are changes
+        id: verify-changed-files
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      # Auto-commit & push jika ada perubahan
+      - name: Commit changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git commit -m "🤖 chore: auto-fix code formatting & linting" || true
+          git push
