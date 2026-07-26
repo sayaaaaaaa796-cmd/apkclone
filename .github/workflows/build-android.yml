@@ -20,8 +20,8 @@ jobs:
     #  - name: Beri Izin Gradle
       #  run: chmod +x gradlew
 
-      - name: Bangun APK
-        run: ./gradlew assembleDebug # Ganti jadi assembleRelease kalau mau versi rilis
+    #  - name: Bangun APK
+      #  run: ./gradlew assembleDebug # #Ganti jadi assembleRelease kalau mau versi rilis
 
       - name: Unggah Hasil APK
         uses: actions/upload-artifact@v4
