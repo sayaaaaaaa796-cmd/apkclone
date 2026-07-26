@@ -14,21 +14,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
 
       - name: Install Dependencies
-        run: |
-          bun install
+        run: bun install
 
       - name: Build Web
-        run: |
-          bun run build || npm run build
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        run: bun run build
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -36,20 +31,20 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Install Capacitor CLI
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Capacitor
         run: |
           npm install -g @capacitor/cli @capacitor/android
 
-      - name: Initialize Capacitor (Jika belum)
+      - name: Buat Project Capacitor
         run: |
-          if [ ! -d "android" ]; then
-            npx cap init MyApp com.example.myapp
-            npx cap add android
-          fi
+          npx cap init MyApp com.example.myapp --web-dir=dist
+          npx cap add android
 
-      - name: Copy Web Build ke Android
-        run: |
-          npx cap copy android
+      - name: Copy Web ke Android
+        run: npx cap copy android
 
       - name: Build APK
         run: |
