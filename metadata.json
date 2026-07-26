@@ -1,0 +1,6 @@
+{
+  "name": "Marketplace Lite",
+  "description": "Aplikasi e-commerce mirip Shopee dengan fitur keranjang dan checkout",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
