@@ -7,6 +7,8 @@ permissions:
 on:
   push:
     branches: [main, develop]
+    paths-ignore:
+      - '.github/workflows/**'  # Jangan trigger untuk workflow changes
   pull_request:
     branches: [main, develop]
 
@@ -23,7 +25,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -35,19 +39,20 @@ jobs:
           npm install --global prettier eslint
           pip install black isort autopep8 -q
 
-      - name: Fix code
+      - name: Fix code (exclude workflows)
         run: |
-          # JavaScript
-          npx prettier --write . --ignore-unknown 2>/dev/null || true
-          npx eslint . --fix 2>/dev/null || true
+          # JavaScript - exclude workflows
+          npx prettier --write "**/*.{js,jsx,ts,tsx,json,md,yaml,yml}" --ignore-path .gitignore --ignore-unknown 2>/dev/null || true
+          npx eslint src/ --fix 2>/dev/null || true
           
           # Python
           black . -q 2>/dev/null || true
           isort . -q 2>/dev/null || true
-          autopep8 --in-place --recursive . 2>/dev/null || true
+          autopep8 --in-place --recursive src/ 2>/dev/null || true
 
-      - name: Auto-commit
+      - name: Auto-commit (exclude workflows)
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "🤖 chore: auto-fix formatting & linting"
-          file_pattern: "."
+          file_pattern: "src/ *.html *.json *.md"  # Spesifik file yang di-allow
+          skip_dirty_check: false
