@@ -1,8 +1,8 @@
 name: Build APK
 on:
   push:
-    branches: [ main ] # Sesuaikan kalau cabang utamamu bukan "main"
-  workflow_dispatch: # Bisa jalan manual lewat tombol
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -11,21 +11,23 @@ jobs:
       - name: Ambil Kode
         uses: actions/checkout@v4
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Siapkan Java
         uses: actions/setup-java@v4
         with:
           java-version: 17
           distribution: temurin
 
-    #  - name: Beri Izin Gradle
-      #  run: chmod +x gradlew
+      - name: Beri Izin Gradle
+        run: chmod +x gradlew
 
-    #  - name: Bangun APK
-      #  run: ./gradlew assembleDebug # #Ganti jadi assembleRelease kalau mau versi rilis
+      - name: Bangun APK Debug
+        run: ./gradlew assembleDebug --stacktrace
 
       - name: Unggah Hasil APK
         uses: actions/upload-artifact@v4
         with:
           name: File-APK
           path: app/build/outputs/apk/debug/*.apk
-       
