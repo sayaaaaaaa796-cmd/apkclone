@@ -1,63 +1,31 @@
-name: Build Android APK
-
-# Kapan workflow ini dijalankan
+name: Build APK
 on:
   push:
-    tags:
-      - 'v*' # Saat ada tag baru (v1.0.0, v1.0.1, dll)
-  workflow_dispatch: # Agar bisa dijalankan manual dari tab Actions
+    branches: [ main ] # Sesuaikan kalau cabang utamamu bukan "main"
+  workflow_dispatch: # Bisa jalan manual lewat tombol
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Izin untuk upload file ke Release
-
     steps:
-      - name: Checkout kode
+      - name: Ambil Kode
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Setup Java
+      - name: Siapkan Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          java-version: 17
+          distribution: temurin
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Beri Izin Gradle
+        run: chmod +x gradlew
 
-      - name: Install dependensi
-        run: npm ci
+      - name: Bangun APK
+        run: ./gradlew assembleDebug # Ganti jadi assembleRelease kalau mau versi rilis
 
-      - name: Build web app
-        run: npm run build
-
-      - name: Install Capacitor
-        run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap add android
-
-      - name: Sync Capacitor
-        run: npx cap sync
-
-      - name: Build Android APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug # Build versi Debug (tidak perlu signing)
-          # ./gradlew assembleRelease # untuk versi Release (butuh keystore)
-
-      - name: Upload APK ke Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Unggah Hasil APK
+        uses: actions/upload-artifact@v4
         with:
-          files: android/app/build/outputs/apk/debug/app-debug.apk
-          # files: android/app/build/outputs/apk/release/app-release.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: File-APK
+          path: app/build/outputs/apk/debug/*.apk
+       
