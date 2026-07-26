@@ -11,93 +11,19 @@ jobs:
       - name: Ambil Kode
         uses: actions/checkout@v4
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Siapkan Java
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: temurin
-
-      - name: Cek & Siapkan Gradle
+      - name: Cari APK di repo
         run: |
-          echo "=== CEK FILE GRADLE ==="
-          if [ -f "gradlew" ]; then
-            echo "✅ gradlew ditemukan"
-            chmod +x gradlew
-            ./gradlew --version || echo "⚠️ Gradle error, lanjut ke fallback"
-          else
-            echo "❌ gradlew TIDAK DITEMUKAN!"
-            echo "=== Membuat gradlew dari template ==="
-            
-            # Buat file gradlew
-            cat > gradlew << 'EOF'
-            #!/bin/sh
-            echo "Gradle wrapper fallback"
-            echo "Mencoba build dengan gradle global..."
-            gradle assembleDebug --stacktrace
-            EOF
-            
-            chmod +x gradlew
-            echo "✅ gradlew fallback dibuat"
-          fi
-          
-          echo "=== ISI FOLDER ==="
+          echo "=== MENCARI FILE APK ==="
+          find . -name "*.apk" -type f || echo "Tidak ada APK ditemukan"
+          echo ""
+          echo "=== ISI REPO ==="
           ls -la
 
-      - name: Setup Gradle Global (Fallback)
-        run: |
-          if ! command -v gradle &> /dev/null; then
-            echo "⬇️ Install Gradle global..."
-            sudo apt-get update
-            sudo apt-get install -y gradle
-          else
-            echo "✅ Gradle sudah terinstall"
-          fi
-          gradle --version
-
-      - name: Bangun APK (Auto Detect)
-        run: |
-          echo "=== MULAI BUILD ==="
-          
-          # Coba pake gradlew dulu
-          if [ -f "gradlew" ] && ./gradlew --version &> /dev/null; then
-            echo "🔨 Build pake gradlew"
-            ./gradlew assembleDebug --stacktrace
-          elif command -v gradle &> /dev/null; then
-            echo "🔨 Build pake gradle global"
-            gradle assembleDebug --stacktrace
-          else
-            echo "❌ Gak ada Gradle sama sekali!"
-            echo "📝 Buat file APK dummy biar gak error"
-            mkdir -p app/build/outputs/apk/debug/
-            echo "dummy" > app/build/outputs/apk/debug/app-debug.apk
-            exit 0
-          fi
-
-      - name: Cek Hasil Build
-        run: |
-          echo "=== CEK FOLDER APK ==="
-          if [ -d "app/build/outputs/apk" ]; then
-            echo "✅ Folder APK ada"
-            find app/build/outputs/apk -name "*.apk" -type f || echo "⚠️ TAPI gak ada file APK"
-          else
-            echo "❌ Folder APK gak ada"
-            echo "📝 Buat folder & file dummy"
-            mkdir -p app/build/outputs/apk/debug/
-            echo "dummy" > app/build/outputs/apk/debug/app-debug.apk
-          fi
-          
-          echo "=== ISI LENGKAP ==="
-          find . -name "*.apk" -type f 2>/dev/null || echo "Gak ada APK ditemukan"
-          ls -la app/build/outputs/apk/debug/ 2>/dev/null || echo "Folder debug gak ada"
-
-      - name: Unggah Hasil APK
+      - name: Upload APK (Kalau Ada)
         uses: actions/upload-artifact@v4
         with:
           name: File-APK
           path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/*/*.apk
             **/*.apk
+            *.apk
+            app/**/*.apk
