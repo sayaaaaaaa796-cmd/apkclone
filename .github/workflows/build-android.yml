@@ -44,6 +44,20 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      - name: Fix Duplicate Class Error
+        run: |
+          cd android
+          echo "" >> app/build.gradle
+          echo "configurations.all {" >> app/build.gradle
+          echo "    resolutionStrategy {" >> app/build.gradle
+          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'" >> app/build.gradle
+          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'" >> app/build.gradle
+          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'" >> app/build.gradle
+          echo "    }" >> app/build.gradle
+          echo "}" >> app/build.gradle
+          echo "=== isi build.gradle ==="
+          cat app/build.gradle
+
       - name: Build APK
         run: |
           cd android
